@@ -102,6 +102,34 @@ async function run() {
       const result = await requestCollection.find().toArray();
       res.send(result);
     });
+    app.patch("/bloodReq/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const query = { _id: new ObjectId(id) };
+
+      const updateDoc = {
+        $set: {
+          status: status,
+        },
+      };
+
+      const result = await requestCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+    app.delete("/bloodReq/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) };
+
+      const result = await requestCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.get("/bloodReq/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await requestCollection.find(query).toArray();
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
