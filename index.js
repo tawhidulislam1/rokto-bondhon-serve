@@ -31,6 +31,7 @@ async function run() {
     await client.connect();
 
     const userCollection = client.db("rokthoBondhon").collection("users");
+    const requestCollection = client.db("rokthoBondhon").collection("bloodReq");
 
     app.post("/user", async (req, res) => {
       const user = req.body;
@@ -92,6 +93,15 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/bloodReq", async (req, res) => {
+      const user = req.body;
+      const result = await requestCollection.insertOne(user);
+      res.send(result);
+    });
+    app.get("/bloodReq", async (req, res) => {
+      const result = await requestCollection.find().toArray();
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
