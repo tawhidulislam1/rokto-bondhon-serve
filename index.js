@@ -200,6 +200,20 @@ async function run() {
       const result = await blogCollection.deleteOne(query);
       res.send(result);
     });
+    app.patch("/blog/:id", async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;
+
+      const query = { _id: new ObjectId(id) };
+
+      const updateDoc = {
+        $set: {
+          status: status,
+        },
+      };
+      const result = await blogCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
