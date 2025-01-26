@@ -159,11 +159,11 @@ async function run() {
 
       const query = { email: email };
       const user = await userCollection.findOne(query);
-      let admin = false;
+      let volunteer = false;
       if (user) {
-        admin = user?.role === "Volunteer";
+        volunteer = user?.role === "Volunteer";
       }
-      res.send({ admin });
+      res.send({ volunteer });
     });
     app.delete("/user/:id", async (req, res) => {
       const id = req.params.id;
@@ -177,8 +177,12 @@ async function run() {
       const result = await requestCollection.insertOne(user);
       res.send(result);
     });
-
-    app.get("/bloodReq", verifyToken, async (req, res) => {
+    app.get("/bloodReq/status", async (req, res) => {
+      const query = { status: "pending" };
+      const result = await requestCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.get("/bloodReq", async (req, res) => {
       const result = await requestCollection.find().toArray();
       res.send(result);
     });
@@ -211,7 +215,7 @@ async function run() {
       const result = await requestCollection.find(query).toArray();
       res.send(result);
     });
-    app.get("/bloodReq/:id", verifyToken, async (req, res) => {
+    app.get("/bloodReq/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await requestCollection.findOne(query);
@@ -232,6 +236,21 @@ async function run() {
           hospitalName: item.hospitalName,
           upajela: item.upajela,
           district: item.district,
+        },
+      };
+      const result = await requestCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+    app.patch("/bloodReq/donerUpdate/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const { status } = req.body;
+      const item = req.body;
+      const updateDoc = {
+        $set: {
+          donnerEamil: item.donnerEamil,
+          Doonername: item.Doonername,
+          status: status,
         },
       };
       const result = await requestCollection.updateOne(query, updateDoc);
