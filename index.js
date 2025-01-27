@@ -266,6 +266,17 @@ async function run() {
       const result = await blogCollection.find().toArray();
       res.send(result);
     });
+    app.get("/blog/active", async (req, res) => {
+      const query = { status: "publised" };
+      const result = await blogCollection.find(query).toArray();
+      res.send(result);
+    });
+    app.get("/blog/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await blogCollection.findOne(query);
+      res.send(result);
+    });
     app.delete("/blog/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
