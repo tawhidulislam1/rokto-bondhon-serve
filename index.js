@@ -31,7 +31,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const userCollection = client.db("rokthoBondhon").collection("users");
     const requestCollection = client.db("rokthoBondhon").collection("bloodReq");
@@ -48,17 +48,6 @@ async function run() {
       res.send({ token });
     });
 
-    // use verify admin after verifyToken
-    const verifyAdmin = async (req, res, next) => {
-      const email = req.decoded.email;
-      const query = { email: email };
-      const user = await userCollection.findOne(query);
-      const isAdmin = user?.role === "Admin";
-      if (!isAdmin) {
-        return res.status(403).send({ message: "forbidden access" });
-      }
-      next();
-    };
     const verifyToken = (req, res, next) => {
       // console.log("inside verify token", req.headers.authorization);
 
@@ -80,12 +69,12 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-    app.get("/user", async (req, res) => {
+    app.get("/user", verifyToken, async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
-    app.patch("/user/status/:id", async (req, res) => {
+    app.patch("/user/status/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const { status } = req.body;
       const query = { _id: new ObjectId(id) };
@@ -98,7 +87,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/user/role/:id", async (req, res) => {
+    app.patch("/user/role/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const { role } = req.body;
 
@@ -122,7 +111,7 @@ async function run() {
     app.patch("/user/profile/:email", async (req, res) => {
       const email = req.params.email;
       const info = req.body;
-
+      console.log("Data received in request body:", info);
       const query = { email: email };
 
       const updateDoc = {
@@ -184,7 +173,7 @@ async function run() {
       const result = await requestCollection.find(query).toArray();
       res.send(result);
     });
-    app.get("/bloodReq", async (req, res) => {
+    app.get("/bloodReq", verifyToken, async (req, res) => {
       const result = await requestCollection.find().toArray();
       res.send(result);
     });
@@ -217,7 +206,7 @@ async function run() {
       const result = await requestCollection.find(query).toArray();
       res.send(result);
     });
-    app.get("/bloodReq/:id", async (req, res) => {
+    app.get("/bloodReq/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await requestCollection.findOne(query);
@@ -324,7 +313,7 @@ async function run() {
       });
     });
 
-    app.post("/payment", async (req, res) => {
+    app.post("/payment", verifyToken, async (req, res) => {
       const payment = req.body;
       const result = await paymentCollection.insertOne(payment);
 
@@ -334,11 +323,34 @@ async function run() {
       const result = await paymentCollection.find().toArray();
       res.send(result);
     });
+
+    //states
+    app.get("/admin-states", verifyToken, async (req, res) => {
+      const user = await userCollection.countDocuments({ role: "Donor" });
+      const funds = await paymentCollection.estimatedDocumentCount();
+      const bloodRequeste = await requestCollection.estimatedDocumentCount();
+      const result = await paymentCollection
+        .aggregate([
+          {
+            $group: {
+              _id: null,
+              paymentRevenew: {
+                $sum: "$price",
+              },
+            },
+          },
+        ])
+        .toArray();
+
+      const reveneu = result.length > 0 ? result[0].paymentRevenew : 0;
+
+      res.send({ user, funds, bloodRequeste, reveneu });
+    });
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
