@@ -78,7 +78,7 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-    app.get("/user", verifyToken, async (req, res) => {
+    app.get("/user", async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
@@ -262,7 +262,7 @@ async function run() {
       const result = await blogCollection.insertOne(body);
       res.send(result);
     });
-    app.get("/blog", verifyToken, async (req, res) => {
+    app.get("/blog", async (req, res) => {
       const result = await blogCollection.find().toArray();
       res.send(result);
     });
