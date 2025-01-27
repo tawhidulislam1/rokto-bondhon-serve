@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(process.env.STRIPE_KEY);
 var jwt = require("jsonwebtoken");
 
 const app = express();
@@ -35,6 +36,7 @@ async function run() {
     const userCollection = client.db("rokthoBondhon").collection("users");
     const requestCollection = client.db("rokthoBondhon").collection("bloodReq");
     const blogCollection = client.db("rokthoBondhon").collection("blog");
+    const paymentCollection = client.db("rokthoBondhon").collection("payment");
 
     //jwt route
 
@@ -295,6 +297,41 @@ async function run() {
         },
       };
       const result = await blogCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+    //payment
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const { price } = req.body;
+      // Validate price
+      if (!price || price < 0.5) {
+        console.error("Invalid price:", price);
+        return res
+          .status(400)
+          .send({ error: "Price must be at least 0.50 USD." });
+      }
+
+      const amount = Math.round(price * 100);
+
+      const paymentInten = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentInten.client_secret,
+      });
+    });
+
+    app.post("/payment", async (req, res) => {
+      const payment = req.body;
+      const result = await paymentCollection.insertOne(payment);
+
+      res.send({ result });
+    });
+    app.get("/payment", async (req, res) => {
+      const result = await paymentCollection.find().toArray();
       res.send(result);
     });
     // Send a ping to confirm a successful connection
