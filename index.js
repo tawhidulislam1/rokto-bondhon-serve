@@ -69,12 +69,12 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
-    app.get("/user", verifyToken, async (req, res) => {
+    app.get("/user", async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
-    app.patch("/user/status/:id", verifyToken, async (req, res) => {
+    app.patch("/user/status/:id", async (req, res) => {
       const id = req.params.id;
       const { status } = req.body;
       const query = { _id: new ObjectId(id) };
@@ -102,8 +102,9 @@ async function run() {
       const result = await userCollection.updateOne(query, updateDoc);
       res.send(result);
     });
-    app.get("/user/profile/:email", verifyToken, async (req, res) => {
+    app.get("/user/profile/:email", async (req, res) => {
       const email = req.params.email;
+
       const query = { email: email };
       const result = await userCollection.findOne(query);
       res.send(result);
@@ -173,7 +174,7 @@ async function run() {
       const result = await requestCollection.find(query).toArray();
       res.send(result);
     });
-    app.get("/bloodReq", verifyToken, async (req, res) => {
+    app.get("/bloodReq", async (req, res) => {
       const result = await requestCollection.find().toArray();
       res.send(result);
     });
@@ -200,13 +201,13 @@ async function run() {
       const result = await requestCollection.deleteOne(query);
       res.send(result);
     });
-    app.get("/bloodReq/email/:email", verifyToken, async (req, res) => {
+    app.get("/bloodReq/email/:email", async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await requestCollection.find(query).toArray();
       res.send(result);
     });
-    app.get("/bloodReq/:id", verifyToken, async (req, res) => {
+    app.get("/bloodReq/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await requestCollection.findOne(query);
@@ -313,7 +314,7 @@ async function run() {
       });
     });
 
-    app.post("/payment", verifyToken, async (req, res) => {
+    app.post("/payment", async (req, res) => {
       const payment = req.body;
       const result = await paymentCollection.insertOne(payment);
 
@@ -325,8 +326,8 @@ async function run() {
     });
 
     //states
-    app.get("/admin-states", verifyToken, async (req, res) => {
-      const user = await userCollection.countDocuments({ role: "Donor" });
+    app.get("/admin-states", async (req, res) => {
+      const user = await userCollection.countDocuments({ role: "donor" });
       const funds = await paymentCollection.estimatedDocumentCount();
       const bloodRequeste = await requestCollection.estimatedDocumentCount();
       const result = await paymentCollection
@@ -344,7 +345,44 @@ async function run() {
 
       const reveneu = result.length > 0 ? result[0].paymentRevenew : 0;
 
-      res.send({ user, funds, bloodRequeste, reveneu });
+      const bloodGroups = await userCollection
+        .aggregate([
+          {
+            $group: {
+              _id: "$bloodGroup",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray();
+
+      const bloodGroupCounts = bloodGroups.reduce((acc, group) => {
+        acc[group._id] = group.count;
+        return acc;
+      }, {});
+      const requestStatus = await requestCollection
+        .aggregate([
+          {
+            $group: {
+              _id: "$status",
+              count: { $sum: 1 },
+            },
+          },
+        ])
+        .toArray();
+
+      const requestStatusCounts = requestStatus.reduce((acc, status) => {
+        acc[status._id] = status.count;
+        return acc;
+      }, {});
+      res.send({
+        user,
+        funds,
+        bloodRequeste,
+        reveneu,
+        bloodGroups: bloodGroupCounts,
+        requestStatus: requestStatusCounts,
+      });
     });
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
